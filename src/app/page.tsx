@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useUser } from '@stackframe/stack';
+import { LandingPage } from '@/components/LandingPage';
 import { AuthPrompt } from '@/components/AuthPrompt';
 import { PromptInput } from '@/components/PromptInput';
 import { ImageCard } from '@/components/ImageCard';
@@ -14,11 +16,12 @@ import { samplePrompts } from '@/data/samplePrompts';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Zap, Github, Heart, Crown, Settings, Moon, Sun } from 'lucide-react';
+import { Zap, Github, Heart, Crown, Settings, Moon, Sun, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
+import { stackClientApp } from '@/stack-client';
 
 export default function Home() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const user = useUser();
   const [prompt, setPrompt] = useState('');
   const [currentGeneration, setCurrentGeneration] = useState<any>(null);
   const [generationCount, setGenerationCount] = useState(0);
@@ -88,9 +91,15 @@ export default function Home() {
     document.documentElement.classList.toggle('dark');
   };
 
-  // if (!isAuthenticated) {
-  //   return <AuthPrompt onContinueWithoutAuth={() => setIsAuthenticated(true)} />;
-  // }
+  const handleSignOut = async () => {
+    await user?.signOut();
+    toast.success('Signed out successfully!');
+  };
+
+  // Show landing page for unauthenticated users
+  if (!user) {
+    return <LandingPage onGetStarted={() => stackClientApp.redirectToSignIn()} />;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
@@ -131,6 +140,17 @@ export default function Home() {
                   GitHub
                 </a>
               </Button>
+              {user && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">
+                    Welcome, {user.displayName || user.primaryEmail || 'User'}
+                  </span>
+                  <Button variant="outline" size="sm" onClick={handleSignOut}>
+                    <LogOut className="w-4 h-4 mr-1" />
+                    Sign Out
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </div>

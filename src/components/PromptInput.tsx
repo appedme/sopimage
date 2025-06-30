@@ -14,9 +14,18 @@ interface PromptInputProps {
   setPrompt: (prompt: string) => void;
   onGenerate: () => void;
   isGenerating: boolean;
+  isAuthenticated?: boolean;
+  onLogin?: () => void;
 }
 
-export const PromptInput = ({ prompt, setPrompt, onGenerate, isGenerating }: PromptInputProps) => {
+export const PromptInput = ({ 
+  prompt, 
+  setPrompt, 
+  onGenerate, 
+  isGenerating, 
+  isAuthenticated = true, 
+  onLogin 
+}: PromptInputProps) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
   const categories = ['all', 'fantasy', 'nature', 'portrait', 'abstract', 'animals', 'sci-fi'];
@@ -52,12 +61,17 @@ export const PromptInput = ({ prompt, setPrompt, onGenerate, isGenerating }: Pro
         </div>
 
         <Button 
-          onClick={onGenerate} 
-          disabled={isGenerating || !prompt.trim()}
+          onClick={isAuthenticated ? onGenerate : onLogin} 
+          disabled={isAuthenticated ? (isGenerating || !prompt.trim()) : false}
           className="w-full"
           size="lg"
         >
-          {isGenerating ? (
+          {!isAuthenticated ? (
+            <>
+              <Sparkles className="w-4 h-4 mr-2" />
+              Login to Generate
+            </>
+          ) : isGenerating ? (
             <>
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
               Generating Images...
