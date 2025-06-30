@@ -106,11 +106,65 @@ export async function GET(request: NextRequest) {
         const data = await response.text();
 
         // Return the response as plain text
-        return new NextResponse(data, {
-            headers: {
-                'Content-Type': 'text/plain',
-            },
+        // Parse the response to extract image URLs and mimeTypes
+        // The response is a text with lines like: b2:[{...}] bd:{...} a2:[{...}] ad:{...}
+        const lines = data.split('\n').map(line => line.trim()).filter(Boolean);
+
+        let modelAImage: { image: string; mimeType: string } | null = null;
+        let modelBImage: { image: string; mimeType: string } | null = null;
+
+        for (const line of lines) {
+            if (line.startsWith('a2:')) {
+                try {
+                    const arr = JSON.parse(line.slice(3));
+                    if (Array.isArray(arr) && arr[0]?.image) {
+                        modelAImage = { image: arr[0].image, mimeType: arr[0].mimeType };
+                    }
+                } catch { }
+            }
+            if (line.startsWith('b2:')) {
+                try {
+                    const arr = JSON.parse(line.slice(3));
+                    if (Array.isArray(arr) && arr[0]?.image) {
+                        modelBImage = { image: arr[0].image, mimeType: arr[0].mimeType };
+                    }
+                } catch { }
+            }
+        }
+
+        return NextResponse.json({
+            prompt,
+            modelAImage,
+            modelBImage
         });
+
+        /*
+        response returned 
+
+        {
+"prompt"
+:
+"beautiful dragon girl",
+"modelAImage": {
+"image"
+:
+"https://messages-prod.27c852f3500f38c1e7786e2c9ff9e48f.r2.cloudflarestorage.com/dcbf2e16-f190-4660-956f-61ea92c1b9c4/1751265274629-8aadc3ba-43c9-4aa0-89c9-bdff4110aa54.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=c86e09ae0bc1d897b03dfaa30a8b51f3%2F20250630%2Fauto%2Fs3%2Faws4_request&X-Amz-Date=20250630T063435Z&X-Amz-Expires=3600&X-Amz-Signature=867a268482bc76755cad7687fefaee9f9562bbdcab25165699567f299fcc9b4a&X-Amz-SignedHeaders=host&x-amz-checksum-mode=ENABLED&x-id=GetObjectImage preview",
+"mimeType"
+:
+"image/png"
+},
+"modelBImage": {
+"image"
+:
+"https://messages-prod.27c852f3500f38c1e7786e2c9ff9e48f.r2.cloudflarestorage.com/dcbf2e16-f190-4660-956f-61ea92c1b9c4/1751265256126-0e5e9e5c-6bbb-484b-ae3e-028a49d6e2f3.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=c86e09ae0bc1d897b03dfaa30a8b51f3%2F20250630%2Fauto%2Fs3%2Faws4_request&X-Amz-Date=20250630T063416Z&X-Amz-Expires=3600&X-Amz-Signature=6802cc0188d12fc9afc8ca0d1fb6b73aed4b6579b81f72862ba7d200617b09a3&X-Amz-SignedHeaders=host&x-amz-checksum-mode=ENABLED&x-id=GetObjectImage preview",
+"mimeType"
+:
+"image/png"
+}
+}
+        
+        
+        */
 
     } catch (error) {
         console.error('Error:', error);
