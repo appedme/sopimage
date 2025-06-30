@@ -20,9 +20,10 @@ import { models } from '@/data/modelsdata';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Zap, Github, Heart, Crown, Settings, Moon, Sun, LogOut } from 'lucide-react';
+import { Zap, Github, Heart, Crown, Settings, Moon, Sun, LogOut, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { stackClientApp } from '@/stack-client';
+import Link from 'next/link';
 
 export default function Home() {
   const user = useUser();
@@ -169,6 +170,12 @@ export default function Home() {
               <Button variant="outline" size="sm" onClick={toggleDarkMode}>
                 {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
               </Button>
+              <Link href="/create">
+                <Button variant="outline" size="sm" className="bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/30">
+                  <Sparkles className="w-4 h-4 mr-1" />
+                  Create Mode
+                </Button>
+              </Link>
               <Button variant="outline" size="sm" asChild>
                 <a 
                   href="https://github.com" 
