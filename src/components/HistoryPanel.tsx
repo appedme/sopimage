@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { GenerationHistory } from '@/types';
-import { History, Trash2, Download, ExternalLink } from 'lucide-react';
+import { History, Trash2, ExternalLink } from 'lucide-react';
 import Image from 'next/image';
 
 interface HistoryPanelProps {
@@ -21,21 +21,9 @@ export const HistoryPanel = ({ history, onClearHistory, onPromptSelect }: Histor
     return new Date(timestamp).toLocaleString();
   };
 
-  const handleDownload = async (imageUrl: string, modelName: string) => {
-    try {
-      const response = await fetch(imageUrl);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${modelName}-${Date.now()}.png`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    } catch (error) {
-      console.error('Download failed:', error);
-    }
+  const handleDownload = (imageUrl: string, modelName: string) => {
+    // Open image in new tab instead of downloading due to CORS
+    window.open(imageUrl, '_blank');
   };
 
   if (history.length === 0) {
@@ -101,7 +89,7 @@ export const HistoryPanel = ({ history, onClearHistory, onPromptSelect }: Histor
                         className="h-6 w-6 p-0"
                         onClick={() => handleDownload(item.modelAImage!.image, 'GPT-Image-1')}
                       >
-                        <Download className="w-3 h-3" />
+                        <ExternalLink className="w-3 h-3" />
                       </Button>
                       <Button
                         size="sm"
@@ -136,7 +124,7 @@ export const HistoryPanel = ({ history, onClearHistory, onPromptSelect }: Histor
                         className="h-6 w-6 p-0"
                         onClick={() => handleDownload(item.modelBImage!.image, 'DALL-E-3')}
                       >
-                        <Download className="w-3 h-3" />
+                        <ExternalLink className="w-3 h-3" />
                       </Button>
                       <Button
                         size="sm"

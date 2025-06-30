@@ -15,21 +15,9 @@ interface ImageCardProps {
 }
 
 export const ImageCard = ({ image, modelName, prompt, isLoading = false }: ImageCardProps) => {
-  const handleDownload = async () => {
-    try {
-      const response = await fetch(image.image);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${modelName}-${Date.now()}.png`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    } catch (error) {
-      console.error('Download failed:', error);
-    }
+  const handleDownload = () => {
+    // Open image in new tab instead of downloading due to CORS
+    window.open(image.image, '_blank');
   };
 
   const handleOpenInNewTab = () => {
@@ -61,11 +49,9 @@ export const ImageCard = ({ image, modelName, prompt, isLoading = false }: Image
           <Badge variant="secondary">{modelName}</Badge>
           <div className="flex gap-2">
             <Button size="sm" variant="outline" onClick={handleDownload}>
-              <Download className="w-4 h-4" />
-            </Button>
-            <Button size="sm" variant="outline" onClick={handleOpenInNewTab}>
               <ExternalLink className="w-4 h-4" />
             </Button>
+          </div>
           </div>
         </div>
         <div className="aspect-square relative rounded-lg overflow-hidden bg-muted">

@@ -1,333 +1,216 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useUser } from '@stackframe/stack';
-import { LandingPage } from '@/components/LandingPage';
-import { AuthPrompt } from '@/components/AuthPrompt';
-import { PromptInput } from '@/components/PromptInput';
-import { ImageCard } from '@/components/ImageCard';
-import { GenerationTimer } from '@/components/GenerationTimer';
-import { HistoryPanel } from '@/components/HistoryPanel';
-import { QuickActions } from '@/components/QuickActions';
-import { StatsWidget } from '@/components/StatsWidget';
-import { ModelSelector } from '@/components/ModelSelector';
-import { SingleImageDisplay } from '@/components/SingleImageDisplay';
-import { useImageGeneration } from '@/hooks/useImageGeneration';
-import { useSingleImageGeneration } from '@/hooks/useSingleImageGeneration';
-import { useGenerationHistory } from '@/hooks/useLocalStorage';
-import { samplePrompts } from '@/data/samplePrompts';
-import { models } from '@/data/modelsdata';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Zap, Github, Heart, Crown, Settings, Moon, Sun, LogOut, Sparkles } from 'lucide-react';
-import { toast } from 'sonner';
-import { stackClientApp } from '@/stack-client';
+import { Sparkles, Zap, Users, Crown, ArrowRight, Play } from 'lucide-react';
 import Link from 'next/link';
+import { showcaseImages } from '@/data/showcaseImages';
 
-export default function Home() {
+export default function LandingPage() {
   const user = useUser();
-  const [prompt, setPrompt] = useState('');
-  const [currentGeneration, setCurrentGeneration] = useState<any>(null);
-  const [currentSingleGeneration, setCurrentSingleGeneration] = useState<any>(null);
-  const [generationCount, setGenerationCount] = useState(0);
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  const [generationMode, setGenerationMode] = useState<'dual' | 'single'>('dual');
-  const [selectedModel, setSelectedModel] = useState<string | null>(null);
-  
-  const { generateImages, isGenerating: isDualGenerating, error: dualError, clearError: clearDualError } = useImageGeneration();
-  const { generateSingleImage, isGenerating: isSingleGenerating, error: singleError, clearError: clearSingleError } = useSingleImageGeneration();
-  const { history, addToHistory, clearHistory } = useGenerationHistory();
+  const [hoveredImage, setHoveredImage] = useState<string | null>(null);
 
-  const isGenerating = isDualGenerating || isSingleGenerating;
-  const error = dualError || singleError;
-
-  // Mock stats data
   const stats = {
-    totalGenerations: 45678 + generationCount,
-    averageTime: 28,
-    modelsAvailable: 2,
-    isOnline: true
+    totalGenerations: 50000,
+    activeUsers: 10000,
+    modelsAvailable: 15
   };
 
-  useEffect(() => {
-    // Check for system dark mode preference
-    if (typeof window !== 'undefined') {
-      const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      setIsDarkMode(isDark);
-      if (isDark) {
-        document.documentElement.classList.add('dark');
-      }
-    }
-  }, []);
-
-  const handleGenerate = async () => {
-    if (!prompt.trim()) {
-      toast.error('Please enter a prompt');
-      return;
-    }
-
-    if (generationMode === 'single' && !selectedModel) {
-      toast.error('Please select a model for single generation');
-      return;
-    }
-
-    if (generationMode === 'dual') {
-      clearDualError();
-      const result = await generateImages(prompt);
-      
-      if (result) {
-        setCurrentGeneration(result);
-        setCurrentSingleGeneration(null); // Clear single generation when switching modes
-        addToHistory({
-          prompt: result.prompt,
-          modelAImage: result.modelAImage,
-          modelBImage: result.modelBImage,
-        });
-        setGenerationCount(prev => prev + 1);
-        toast.success('Images generated successfully!');
-      } else if (dualError) {
-        toast.error(dualError);
-      }
+  const handleGetStarted = () => {
+    if (user) {
+      window.location.href = '/create';
     } else {
-      clearSingleError();
-      const selectedModelData = models.find(m => m.modelId === selectedModel);
-      const result = await generateSingleImage(prompt, selectedModel!, selectedModelData?.name || 'Unknown Model');
-      
-      if (result) {
-        setCurrentSingleGeneration(result);
-        setCurrentGeneration(null); // Clear dual generation when switching modes
-        addToHistory({
-          prompt: result.prompt,
-          modelAImage: result.generatedImage,
-          modelBImage: null,
-        });
-        setGenerationCount(prev => prev + 1);
-        toast.success('Image generated successfully!');
-      } else if (singleError) {
-        toast.error(singleError);
-      }
+      // Redirect to sign in
+      window.location.href = '/handler/sign-in';
     }
   };
-
-  const handlePromptSelect = (selectedPrompt: string) => {
-    setPrompt(selectedPrompt);
-  };
-
-  const handleRandomPrompt = () => {
-    const randomPrompt = samplePrompts[Math.floor(Math.random() * samplePrompts.length)];
-    setPrompt(randomPrompt.prompt);
-    toast.success('Random prompt selected!');
-  };
-
-  const handleClearPrompt = () => {
-    setPrompt('');
-  };
-
-  const toggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode);
-    document.documentElement.classList.toggle('dark');
-  };
-
-  const handleSignOut = async () => {
-    await user?.signOut();
-    toast.success('Signed out successfully!');
-  };
-
-  // Show landing page for unauthenticated users
-  if (!user) {
-    return <LandingPage onGetStarted={() => stackClientApp.redirectToSignIn()} />;
-  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
-      {/* Header */}
-      <header className="border-b bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-pink-600 rounded-lg flex items-center justify-center">
-                <Zap className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                  AI Image Generator
-                </h1>
-                <p className="text-sm text-muted-foreground">
-                  {generationMode === 'dual' 
-                    ? "Compare models side-by-side with unlimited generations"
-                    : `Single model generation with ${models.length}+ AI models`
-                  }
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-3">
-              <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-200 dark:bg-green-900 dark:text-green-300">
-                <Crown className="w-3 h-3 mr-1" />
-                Free Unlimited
-              </Badge>
-              <Button variant="outline" size="sm" onClick={toggleDarkMode}>
-                {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-              </Button>
-              <Link href="/create">
-                <Button variant="outline" size="sm" className="bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/30">
-                  <Sparkles className="w-4 h-4 mr-1" />
-                  Create Mode
-                </Button>
-              </Link>
-              <Button variant="outline" size="sm" asChild>
-                <a 
-                  href="https://github.com" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2"
-                >
-                  <Github className="w-4 h-4" />
-                  GitHub
-                </a>
-              </Button>
-              {user && (
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">
-                    Welcome, {user.displayName || user.primaryEmail || 'User'}
-                  </span>
-                  <Button variant="outline" size="sm" onClick={handleSignOut}>
-                    <LogOut className="w-4 h-4 mr-1" />
-                    Sign Out
-                  </Button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Left Panel - Controls */}
-          <div className="lg:col-span-1 space-y-6">
-            <PromptInput
-              prompt={prompt}
-              setPrompt={setPrompt}
-              onGenerate={handleGenerate}
-              isGenerating={isGenerating}
-            />
-
-            <QuickActions
-              onRandomPrompt={handleRandomPrompt}
-              onClearPrompt={handleClearPrompt}
-              isGenerating={isGenerating}
-              generationCount={generationCount}
-            />
-
-            <StatsWidget stats={stats} />
-
-            <ModelSelector
-              selectedModel={selectedModel}
-              onModelSelect={setSelectedModel}
-              generationMode={generationMode}
-              onModeChange={setGenerationMode}
-            />
-          </div>
-
-          {/* Center Panel - Generation Results */}
-          <div className="lg:col-span-3 space-y-6">
-            {isGenerating && <GenerationTimer isGenerating={isGenerating} />}
-            
-            {/* Dual Model Results */}
-            {generationMode === 'dual' && currentGeneration && !isGenerating && (
-              <div className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Generated Images - Model Comparison</CardTitle>
-                    <p className="text-sm text-muted-foreground">"{currentGeneration.prompt}"</p>
-                  </CardHeader>
-                </Card>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {currentGeneration.modelAImage && (
-                    <ImageCard
-                      image={currentGeneration.modelAImage}
-                      modelName="GPT-Image-1"
-                      prompt={currentGeneration.prompt}
-                    />
-                  )}
-                  {currentGeneration.modelBImage && (
-                    <ImageCard
-                      image={currentGeneration.modelBImage}
-                      modelName="DALL-E-3"
-                      prompt={currentGeneration.prompt}
-                    />
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Single Model Results */}
-            {generationMode === 'single' && currentSingleGeneration && !isGenerating && (
-              <SingleImageDisplay result={currentSingleGeneration} />
-            )}
-
-            {/* Empty State */}
-            {!currentGeneration && !currentSingleGeneration && !isGenerating && (
-              <Card className="text-center py-16">
-                <CardContent>
-                  <div className="w-20 h-20 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <Zap className="w-10 h-10 text-purple-600 dark:text-purple-400" />
-                  </div>
-                  <h3 className="text-xl font-semibold mb-3">Ready to Create Magic</h3>
-                  <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                    {generationMode === 'dual' 
-                      ? "Enter a creative prompt and watch as two powerful AI models bring your imagination to life"
-                      : "Choose your favorite AI model and generate stunning images with precision"
-                    }
-                  </p>
-                  <div className="flex flex-wrap justify-center gap-2">
-                    <Badge variant="outline">✨ Unlimited</Badge>
-                    <Badge variant="outline">🎨 High Quality</Badge>
-                    <Badge variant="outline">⚡ Fast Generation</Badge>
-                    {generationMode === 'single' && (
-                      <Badge variant="outline">🎯 Model Choice</Badge>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )}{/* Right Panel - History */}
-          <div className="lg:col-span-1">
-            <HistoryPanel
-              history={history}
-              onClearHistory={clearHistory}
-              onPromptSelect={handlePromptSelect}
-            />
-          </div>
-          </div>
-
-          
-        </div>
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-cyan-50 dark:from-gray-900 dark:via-purple-900/20 dark:to-blue-900/20 relative overflow-hidden">
+      {/* Background decorative elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
+        <div className="absolute top-40 left-40 w-80 h-80 bg-cyan-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
       </div>
 
-      {/* Footer */}
-      <footer className="border-t bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm mt-16">
-        <div className="container mx-auto px-4 py-8">
-          <div className="text-center space-y-4">
-            <div className="flex items-center justify-center gap-2 text-muted-foreground">
-              <span>Made with</span>
-              <Heart className="w-4 h-4 text-red-500" />
-              <span>using LM Arena API</span>
+      <div className="relative">
+        {/* Hero Section */}
+        <div className="container mx-auto px-4 py-16 text-center">
+          <div className="max-w-4xl mx-auto">
+            <div className="flex justify-center mb-6">
+              <Badge className="bg-gradient-to-r from-purple-500 to-blue-500 text-white border-0 px-4 py-2">
+                <Sparkles className="w-4 h-4 mr-2" />
+                AI-Powered Image Generation
+              </Badge>
             </div>
-            <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground">
-              <a href="#" className="hover:text-foreground transition-colors">Privacy Policy</a>
-              <a href="#" className="hover:text-foreground transition-colors">Terms of Service</a>
-              <a href="#" className="hover:text-foreground transition-colors">API Docs</a>
-              <a href="#" className="hover:text-foreground transition-colors">Support</a>
+            
+            <h1 className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 bg-clip-text text-transparent mb-6">
+              Create Stunning Images with AI
+            </h1>
+            
+            <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 mb-8 max-w-2xl mx-auto">
+              Transform your ideas into beautiful visuals using cutting-edge AI models. 
+              Compare results, explore creativity, and bring your imagination to life.
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+              <Button
+                onClick={handleGetStarted}
+                size="lg"
+                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-8 py-4 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
+              >
+                <Play className="w-5 h-5 mr-2" />
+                Start Creating Free
+              </Button>
+              
+              <Button
+                asChild
+                variant="outline"
+                size="lg"
+                className="border-2 border-purple-300 hover:border-purple-400 px-8 py-4 text-lg font-semibold"
+              >
+                <Link href="/generate">
+                  <Zap className="w-5 h-5 mr-2" />
+                  Compare Models
+                </Link>
+              </Button>
             </div>
-            <Badge variant="outline" className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-purple-200 dark:border-purple-800">
-              🎨 Unlimited AI Image Generation - Forever Free
-            </Badge>
+
+            {/* Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-2xl mx-auto">
+              <div className="text-center">
+                <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">
+                  {stats.totalGenerations.toLocaleString()}+
+                </div>
+                <div className="text-gray-600 dark:text-gray-300">Images Generated</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                  {stats.activeUsers.toLocaleString()}+
+                </div>
+                <div className="text-gray-600 dark:text-gray-300">Active Users</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-cyan-600 dark:text-cyan-400">
+                  {stats.modelsAvailable}+
+                </div>
+                <div className="text-gray-600 dark:text-gray-300">AI Models</div>
+              </div>
+            </div>
           </div>
         </div>
-      </footer>
+
+        {/* Image Showcase */}
+        <div className="container mx-auto px-4 py-16">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
+              See What's Possible
+            </h2>
+            <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+              Explore amazing creations from our community. Hover over any image to see the prompt and model used.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 max-w-6xl mx-auto">
+            {showcaseImages.map((item, index) => (
+              <div
+                key={index}
+                className="group relative aspect-square rounded-lg overflow-hidden cursor-pointer hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-2xl"
+                onMouseEnter={() => setHoveredImage(item.image)}
+                onMouseLeave={() => setHoveredImage(null)}
+              >
+                <img
+                  src={item.image}
+                  alt={item.prompt}
+                  className="w-full h-full object-cover"
+                />
+                
+                {hoveredImage === item.image && (
+                  <div className="absolute inset-0 bg-black/80 flex flex-col justify-end p-4 text-white">
+                    <Badge className="self-start mb-2 bg-purple-500/80 text-white border-0">
+                      {item.model}
+                    </Badge>
+                    <p className="text-sm leading-tight">
+                      {item.prompt}
+                    </p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Features Section */}
+        <div className="container mx-auto px-4 py-16">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+            <Card className="text-center border-0 shadow-lg hover:shadow-xl transition-shadow duration-300 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
+              <CardContent className="p-8">
+                <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Sparkles className="w-8 h-8 text-white" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+                  Multiple AI Models
+                </h3>
+                <p className="text-gray-600 dark:text-gray-300">
+                  Choose from the best AI models including DALL-E, Midjourney, and Stable Diffusion. Compare results side by side.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="text-center border-0 shadow-lg hover:shadow-xl transition-shadow duration-300 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
+              <CardContent className="p-8">
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Zap className="w-8 h-8 text-white" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+                  Lightning Fast
+                </h3>
+                <p className="text-gray-600 dark:text-gray-300">
+                  Generate high-quality images in seconds. Our optimized infrastructure ensures quick results every time.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="text-center border-0 shadow-lg hover:shadow-xl transition-shadow duration-300 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
+              <CardContent className="p-8">
+                <div className="w-16 h-16 bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Crown className="w-8 h-8 text-white" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+                  Premium Quality
+                </h3>
+                <p className="text-gray-600 dark:text-gray-300">
+                  Get professional-grade images with advanced prompting techniques and fine-tuned model parameters.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* CTA Section */}
+        <div className="container mx-auto px-4 py-16 text-center">
+          <div className="max-w-3xl mx-auto">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-6">
+              Ready to Create Something Amazing?
+            </h2>
+            <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
+              Join thousands of creators who are already using our platform to bring their ideas to life.
+            </p>
+            <Button
+              onClick={handleGetStarted}
+              size="lg"
+              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-12 py-4 text-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
+            >
+              <ArrowRight className="w-6 h-6 mr-2" />
+              Get Started Now
+            </Button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -5,22 +5,24 @@ import { useUser } from '@stackframe/stack';
 import { models } from '@/data/modelsdata';
 import { createPageSamplePrompts, quickPromptTips } from '@/data/createPageData';
 import { useSingleImageGeneration } from '@/hooks/useSingleImageGeneration';
+import { CreateModelSelector } from '@/components/CreateModelSelector';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
-import { 
-  Sparkles, 
-  Download, 
-  Share2, 
-  Copy, 
-  Clock, 
+import {
+  Sparkles,
+  ExternalLink,
+  Share2,
+  Copy,
+  Clock,
   Zap,
   Image as ImageIcon,
   ChevronRight,
-  ExternalLink,
-  Wand2
+  ExternalLink as ExternalLinkIcon,
+  Wand2,
+  ChevronDown
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -66,8 +68,8 @@ export default function CreatePage() {
 
     const selectedModelData = models.find(m => m.modelId === selectedModel);
     const generationResult = await generateSingleImage(
-      prompt, 
-      selectedModel, 
+      prompt,
+      selectedModel,
       selectedModelData?.name || 'Unknown Model'
     );
 
@@ -81,24 +83,12 @@ export default function CreatePage() {
     }
   };
 
-  const handleDownload = async () => {
+  const handleDownload = () => {
     if (!result?.generatedImage?.image) return;
-    
-    try {
-      const response = await fetch(result.generatedImage.image);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `ai-generated-${Date.now()}.webp`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-      toast.success('Image downloaded successfully!');
-    } catch (error) {
-      toast.error('Failed to download image');
-    }
+
+    // Open image in new tab instead of downloading due to CORS
+    window.open(result.generatedImage.image, '_blank');
+    toast.success('Image opened in new tab!');
   };
 
   const handleCopyPrompt = () => {
@@ -115,7 +105,7 @@ export default function CreatePage() {
 
   const getShareOptions = () => {
     if (typeof window === 'undefined') return [];
-    
+
     return [
       {
         name: 'Twitter',
@@ -169,7 +159,7 @@ export default function CreatePage() {
                 <p className="text-sm text-muted-foreground">Create Mode</p>
               </div>
             </Link>
-            
+
             <div className="flex items-center gap-3">
               <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-200 dark:bg-green-900 dark:text-green-300">
                 <Sparkles className="w-3 h-3 mr-1" />
@@ -228,7 +218,7 @@ export default function CreatePage() {
                       Copy
                     </Button>
                   </div>
-                  
+
                   {/* Quick Prompt Suggestions */}
                   <div className="space-y-3">
                     <p className="text-sm font-medium">Quick Ideas:</p>
@@ -260,44 +250,6 @@ export default function CreatePage() {
                   </div>
                 </CardContent>
               </Card>
-
-              {/* Model Selection */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <ImageIcon className="w-5 h-5" />
-                    Choose AI Model
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 gap-3 max-h-80 overflow-y-auto">
-                    {models.map((model) => (
-                      <button
-                        key={model.modelId}
-                        onClick={() => setSelectedModel(model.modelId)}
-                        className={cn(
-                          "p-4 rounded-lg border text-left transition-all hover:shadow-md",
-                          selectedModel === model.modelId
-                            ? "bg-primary/10 border-primary ring-2 ring-primary/20"
-                            : "bg-white dark:bg-slate-800 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
-                        )}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-medium">{model.name}</p>
-                            <p className="text-sm text-muted-foreground">ID: {model.id}</p>
-                          </div>
-                          <ChevronRight className={cn(
-                            "w-5 h-5 transition-transform",
-                            selectedModel === model.modelId ? "rotate-90 text-primary" : "text-muted-foreground"
-                          )} />
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
               {/* Generate Button */}
               <Card>
                 <CardContent className="p-6">
@@ -318,7 +270,7 @@ export default function CreatePage() {
                       </>
                     )}
                   </Button>
-                  
+
                   {selectedModelData && (
                     <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                       <p className="text-sm text-blue-800 dark:text-blue-300 font-medium">
@@ -328,6 +280,13 @@ export default function CreatePage() {
                   )}
                 </CardContent>
               </Card>
+              {/* Model Selection */}
+              <CreateModelSelector
+                selectedModel={selectedModel}
+                onModelSelect={setSelectedModel}
+              />
+
+
             </div>
 
             {/* Right Panel - Results */}
@@ -378,7 +337,7 @@ export default function CreatePage() {
                         className="w-full h-auto"
                         style={{ maxHeight: '500px', objectFit: 'contain' }}
                       />
-                      
+
                       {/* Overlay with quick actions */}
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
                         <div className="flex items-center gap-2">
@@ -388,8 +347,8 @@ export default function CreatePage() {
                             onClick={handleDownload}
                             className="bg-white/90 hover:bg-white text-black"
                           >
-                            <Download className="w-4 h-4 mr-1" />
-                            Download
+                            <ExternalLink className="w-4 h-4 mr-1" />
+                            Open
                           </Button>
                           <Button
                             variant="secondary"
@@ -416,8 +375,8 @@ export default function CreatePage() {
                   <CardContent className="space-y-3">
                     <div className="grid grid-cols-2 gap-3">
                       <Button onClick={handleDownload} variant="outline" className="w-full">
-                        <Download className="w-4 h-4 mr-2" />
-                        Download
+                        <ExternalLink className="w-4 h-4 mr-2" />
+                        Open Image
                       </Button>
                       <Button onClick={() => setShowShareModal(true)} variant="outline" className="w-full">
                         <Share2 className="w-4 h-4 mr-2" />
@@ -432,7 +391,7 @@ export default function CreatePage() {
                         Copy URL
                       </Button>
                     </div>
-                    
+
                     <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                       <p className="text-sm text-muted-foreground mb-2">Generation Details:</p>
                       <div className="space-y-1 text-sm">

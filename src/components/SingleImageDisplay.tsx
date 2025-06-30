@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Download, Share2, Copy, Heart } from 'lucide-react';
+import { ExternalLink, Share2, Copy, Heart } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface SingleImageDisplayProps {
@@ -19,24 +19,11 @@ interface SingleImageDisplayProps {
 }
 
 export function SingleImageDisplay({ result }: SingleImageDisplayProps) {
-  const handleDownload = async () => {
+  const handleDownload = () => {
     if (!result.generatedImage?.image) return;
     
-    try {
-      const response = await fetch(result.generatedImage.image);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `ai-generated-${Date.now()}.webp`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-      toast.success('Image downloaded successfully!');
-    } catch (error) {
-      toast.error('Failed to download image');
-    }
+    // Open image in new tab instead of downloading due to CORS
+    window.open(result.generatedImage.image, '_blank');
   };
 
   const handleCopyPrompt = () => {
@@ -100,8 +87,8 @@ export function SingleImageDisplay({ result }: SingleImageDisplayProps) {
                 onClick={handleDownload}
                 className="bg-white/90 hover:bg-white text-black"
               >
-                <Download className="w-4 h-4 mr-1" />
-                Download
+                <ExternalLink className="w-4 h-4 mr-1" />
+                Open
               </Button>
               <Button
                 variant="secondary"
