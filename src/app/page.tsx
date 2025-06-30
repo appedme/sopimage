@@ -10,9 +10,13 @@ import { GenerationTimer } from '@/components/GenerationTimer';
 import { HistoryPanel } from '@/components/HistoryPanel';
 import { QuickActions } from '@/components/QuickActions';
 import { StatsWidget } from '@/components/StatsWidget';
+import { ModelSelector } from '@/components/ModelSelector';
+import { SingleImageDisplay } from '@/components/SingleImageDisplay';
 import { useImageGeneration } from '@/hooks/useImageGeneration';
+import { useSingleImageGeneration } from '@/hooks/useSingleImageGeneration';
 import { useGenerationHistory } from '@/hooks/useLocalStorage';
 import { samplePrompts } from '@/data/samplePrompts';
+import { models } from '@/data/modelsdata';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,11 +28,18 @@ export default function Home() {
   const user = useUser();
   const [prompt, setPrompt] = useState('');
   const [currentGeneration, setCurrentGeneration] = useState<any>(null);
+  const [currentSingleGeneration, setCurrentSingleGeneration] = useState<any>(null);
   const [generationCount, setGenerationCount] = useState(0);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [generationMode, setGenerationMode] = useState<'dual' | 'single'>('dual');
+  const [selectedModel, setSelectedModel] = useState<string | null>(null);
   
-  const { generateImages, isGenerating, error, clearError } = useImageGeneration();
+  const { generateImages, isGenerating: isDualGenerating, error: dualError, clearError: clearDualError } = useImageGeneration();
+  const { generateSingleImage, isGenerating: isSingleGenerating, error: singleError, clearError: clearSingleError } = useSingleImageGeneration();
   const { history, addToHistory, clearHistory } = useGenerationHistory();
+
+  const isGenerating = isDualGenerating || isSingleGenerating;
+  const error = dualError || singleError;
 
   // Mock stats data
   const stats = {
@@ -55,20 +66,46 @@ export default function Home() {
       return;
     }
 
-    clearError();
-    const result = await generateImages(prompt);
-    
-    if (result) {
-      setCurrentGeneration(result);
-      addToHistory({
-        prompt: result.prompt,
-        modelAImage: result.modelAImage,
-        modelBImage: result.modelBImage,
-      });
-      setGenerationCount(prev => prev + 1);
-      toast.success('Images generated successfully!');
-    } else if (error) {
-      toast.error(error);
+    if (generationMode === 'single' && !selectedModel) {
+      toast.error('Please select a model for single generation');
+      return;
+    }
+
+    if (generationMode === 'dual') {
+      clearDualError();
+      const result = await generateImages(prompt);
+      
+      if (result) {
+        setCurrentGeneration(result);
+        setCurrentSingleGeneration(null); // Clear single generation when switching modes
+        addToHistory({
+          prompt: result.prompt,
+          modelAImage: result.modelAImage,
+          modelBImage: result.modelBImage,
+        });
+        setGenerationCount(prev => prev + 1);
+        toast.success('Images generated successfully!');
+      } else if (dualError) {
+        toast.error(dualError);
+      }
+    } else {
+      clearSingleError();
+      const selectedModelData = models.find(m => m.modelId === selectedModel);
+      const result = await generateSingleImage(prompt, selectedModel!, selectedModelData?.name || 'Unknown Model');
+      
+      if (result) {
+        setCurrentSingleGeneration(result);
+        setCurrentGeneration(null); // Clear dual generation when switching modes
+        addToHistory({
+          prompt: result.prompt,
+          modelAImage: result.generatedImage,
+          modelBImage: null,
+        });
+        setGenerationCount(prev => prev + 1);
+        toast.success('Image generated successfully!');
+      } else if (singleError) {
+        toast.error(singleError);
+      }
     }
   };
 
@@ -116,7 +153,10 @@ export default function Home() {
                   AI Image Generator
                 </h1>
                 <p className="text-sm text-muted-foreground">
-                  Unlimited generations with GPT-Image-1 & DALL-E-3
+                  {generationMode === 'dual' 
+                    ? "Compare models side-by-side with unlimited generations"
+                    : `Single model generation with ${models.length}+ AI models`
+                  }
                 </p>
               </div>
             </div>
@@ -176,44 +216,24 @@ export default function Home() {
 
             <StatsWidget stats={stats} />
 
-            {/* Model Info */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Available Models</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center justify-between p-2 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-                  <div>
-                    <p className="font-medium text-green-800 dark:text-green-300">GPT-Image-1</p>
-                    <p className="text-xs text-green-600 dark:text-green-400">Model A</p>
-                  </div>
-                  <Badge variant="outline" className="border-green-300 text-green-700 dark:border-green-700 dark:text-green-400">Active</Badge>
-                </div>
-                <div className="flex items-center justify-between p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <div>
-                    <p className="font-medium text-blue-800 dark:text-blue-300">DALL-E-3</p>
-                    <p className="text-xs text-blue-600 dark:text-blue-400">Model B</p>
-                  </div>
-                  <Badge variant="outline" className="border-blue-300 text-blue-700 dark:border-blue-700 dark:text-blue-400">Active</Badge>
-                </div>
-                <div className="text-center py-2">
-                  <Badge variant="outline" className="bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-400">
-                    🚀 More models coming soon!
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
+            <ModelSelector
+              selectedModel={selectedModel}
+              onModelSelect={setSelectedModel}
+              generationMode={generationMode}
+              onModeChange={setGenerationMode}
+            />
           </div>
 
           {/* Center Panel - Generation Results */}
           <div className="lg:col-span-3 space-y-6">
             {isGenerating && <GenerationTimer isGenerating={isGenerating} />}
             
-            {currentGeneration && !isGenerating && (
+            {/* Dual Model Results */}
+            {generationMode === 'dual' && currentGeneration && !isGenerating && (
               <div className="space-y-4">
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-lg">Generated Images</CardTitle>
+                    <CardTitle className="text-lg">Generated Images - Model Comparison</CardTitle>
                     <p className="text-sm text-muted-foreground">"{currentGeneration.prompt}"</p>
                   </CardHeader>
                 </Card>
@@ -237,7 +257,13 @@ export default function Home() {
               </div>
             )}
 
-            {!currentGeneration && !isGenerating && (
+            {/* Single Model Results */}
+            {generationMode === 'single' && currentSingleGeneration && !isGenerating && (
+              <SingleImageDisplay result={currentSingleGeneration} />
+            )}
+
+            {/* Empty State */}
+            {!currentGeneration && !currentSingleGeneration && !isGenerating && (
               <Card className="text-center py-16">
                 <CardContent>
                   <div className="w-20 h-20 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -245,12 +271,18 @@ export default function Home() {
                   </div>
                   <h3 className="text-xl font-semibold mb-3">Ready to Create Magic</h3>
                   <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                    Enter a creative prompt and watch as two powerful AI models bring your imagination to life
+                    {generationMode === 'dual' 
+                      ? "Enter a creative prompt and watch as two powerful AI models bring your imagination to life"
+                      : "Choose your favorite AI model and generate stunning images with precision"
+                    }
                   </p>
                   <div className="flex flex-wrap justify-center gap-2">
                     <Badge variant="outline">✨ Unlimited</Badge>
                     <Badge variant="outline">🎨 High Quality</Badge>
                     <Badge variant="outline">⚡ Fast Generation</Badge>
+                    {generationMode === 'single' && (
+                      <Badge variant="outline">🎯 Model Choice</Badge>
+                    )}
                   </div>
                 </CardContent>
               </Card>
