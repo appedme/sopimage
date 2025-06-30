@@ -54,7 +54,7 @@ export const QuickActions = ({
         <div className="text-xs text-muted-foreground text-center">
           <div className="flex items-center justify-center gap-1">
             <Sparkles className="w-3 h-3" />
-            <span>Powered by LM Arena API</span>
+            {/* <span>Powered by LM Arena API</span> */}
           </div>
         </div>
       </CardContent>

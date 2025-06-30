@@ -99,7 +99,7 @@ export const PromptInput = ({ prompt, setPrompt, onGenerate, isGenerating }: Pro
                 <div className="space-y-1">
                   <div className="font-medium text-sm">{samplePrompt.title}</div>
                   <div className="text-xs text-muted-foreground line-clamp-2">
-                    {samplePrompt.prompt}
+                    {samplePrompt.prompt.slice(0, 10)}...
                   </div>
                 </div>
               </Button>
