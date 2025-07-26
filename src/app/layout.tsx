@@ -3,9 +3,6 @@ import { StackProvider, StackTheme } from "@stackframe/stack";
 import { stackServerApp } from "../stack";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
-import { Navigation } from "@/components/Navigation";
-import { Footer } from "@/components/Footer";
-import { FloatingCreateButton } from "@/components/FloatingCreateButton";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -35,14 +32,7 @@ export default function RootLayout({
       >
         <StackProvider app={stackServerApp}>
           <StackTheme>
-            <div className="min-h-screen flex flex-col">
-              <Navigation />
-              <main className="flex-1">
-                {children}
-              </main>
-              <Footer />
-            </div>
-            <FloatingCreateButton />
+            {children}
             <Toaster />
           </StackTheme>
         </StackProvider>

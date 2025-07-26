@@ -52,7 +52,6 @@ export const ImageCard = ({ image, modelName, prompt, isLoading = false }: Image
               <ExternalLink className="w-4 h-4" />
             </Button>
           </div>
-          </div>
         </div>
         <div className="aspect-square relative rounded-lg overflow-hidden bg-muted">
           <Image
